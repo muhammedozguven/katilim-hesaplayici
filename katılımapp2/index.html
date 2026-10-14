@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Katılım Finans Proje Hesaplayıcı</title>
+    <style>
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; }
+        body { background-color: #f1f5f9; color: #0f172a; padding: 12px; }
+        .tab-menu { display: flex; gap: 4px; margin-bottom: 12px; background: #e2e8f0; padding: 4px; border-radius: 10px; }
+        .tab-btn { flex: 1; padding: 10px 4px; font-size: 11px; font-weight: bold; border: none; background: transparent; border-radius: 8px; cursor: pointer; color: #475569; }
+        .tab-btn.active { background: #2563eb; color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        h3 { font-size: 15px; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; }
+        .form-group { margin-bottom: 10px; }
+        label { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 4px; }
+        input { width: 100%; padding: 9px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; }
+        .row-inputs { display: flex; gap: 8px; }
+        .row-inputs .form-group { flex: 1; }
+        button.calc-btn { width: 100%; background: #2563eb; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: bold; margin-top: 5px; cursor: pointer; }
+        .res-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px dashed #e2e8f0; }
+        .res-val { font-weight: bold; }
+        .highlight { color: #2563eb; font-weight: bold; }
+        .model-panel { display: none; }
+        .model-panel.active { display: block; }
+        
+        .table-container { overflow-x: auto; max-height: 400px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+        th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f8fafc; color: #64748b; position: sticky; top: 0; z-index: 2; }
+        .tahsisat-row { background-color: #dbeafe !important; font-weight: bold; color: #1e40af; }
+        .cekilis-row { background-color: #fef3c7; color: #92400e; font-size: 11px; }
+        .table-input { width: 95px; padding: 4px; font-size: 12px; border: 1px solid #94a3b8; border-radius: 4px; }
+        .info-note { font-size: 11px; color: #64748b; margin-bottom: 8px; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <!-- MODEL SEÇİMİ -->
+    <div class="tab-menu">
+        <button class="tab-btn active" onclick="switchTab('pesinatli', event)">1. Peşinatlı</button>
+        <button class="tab-btn" onclick="switchTab('kurali', event)">2. Kuralı / Çekilişli</button>
+        <button class="tab-btn" onclick="switchTab('kurasiz', event)">3. Kurasız (%45)</button>
+    </div>
+
+    <!-- ORTAK BİLGİLER -->
+    <div class="card">
+        <h3>Finansman & Başlangıç Bilgileri</h3>
+        <div class="row-inputs">
+            <div class="form-group">
+                <label>Hedef Tutar (TL)</label>
+                <input type="number" id="tutar" value="2000000">
+            </div>
+            <div class="form-group">
+                <label>Org. Ücreti (%)</label>
+                <input type="number" id="orgOran" value="8.5" step="0.1">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>İlk Taksit Tarihi</label>
+            <input type="date" id="baslangicTarih">
+        </div>
+    </div>
+
+    <!-- MODEL 1: PEŞİNATLI -->
+    <div id="pesinatli" class="model-panel active card">
+        <h3>Peşinatlı Model</h3>
+        <div class="row-inputs">
+            <div class="form-group">
+                <label>Peşinat (TL)</label>
+                <input type="number" id="pes1_tutar" value="400000">
+            </div>
+            <div class="form-group">
+                <label>Vade (Ay)</label>
+                <input type="number" id="pes1_vade" value="24">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Yıllık Taksit Artış Oranı (%)</label>
+            <input type="number" id="pes1_artis" value="15">
+        </div>
+        <button class="calc-btn" onclick="hesapla('pesinatli')">HESAPLA VE TABLO OLUŞTUR</button>
+    </div>
+
+    <!-- MODEL 2: KURALI -->
+    <div id="kurali" class="model-panel card">
+        <h3>Kuralı / Çekilişli Model</h3>
+        <div class="row-inputs">
+            <div class="form-group">
+                <label>Grup Kişi Sayısı</label>
+                <input type="number" id="kur_grup" value="30">
+            </div>
+            <div class="form-group">
+                <label>Yıllık Taksit Artış Oranı (%)</label>
+                <input type="number" id="kur_artis" value="15">
+            </div>
+        </div>
+        <button class="calc-btn" onclick="hesapla('kurali')">HESAPLA VE TABLO OLUŞTUR</button>
+    </div>
+
+    <!-- MODEL 3: KURASIZ PEŞİNATSIZ (%45) -->
+    <div id="kurasiz" class="model-panel card">
+        <h3>Kurasız Peşinatsız Model</h3>
+        <div class="row-inputs">
+            <div class="form-group">
+                <label>Başlangıç Taksit (TL)</label>
+                <input type="number" id="kurasiz_taksit" value="50000">
+            </div>
+            <div class="form-group">
+                <label>Yıllık Artış Oranı (%)</label>
+                <input type="number" id="kurasiz_artis" value="15">
+            </div>
+        </div>
+        <button class="calc-btn" onclick="hesapla('kurasiz')">HESAPLA VE TABLO OLUŞTUR</button>
+    </div>
+
+    <!-- ÖZET -->
+    <div class="card" id="sonucCard" style="display:none;">
+        <h3>Proje Özet Bilgisi</h3>
+        <div class="res-row"><span>Organizasyon Bedeli:</span><span class="res-val" id="resOrg">-</span></div>
+        <div class="res-row"><span>Toplam Borç (Finansman):</span><span class="res-val" id="resBorc">-</span></div>
+        <div class="res-row"><span>Gerekli Toplam %45 Birikim:</span><span class="res-val" id="resHedefBirikim">-</span></div>
+        <div class="res-row"><span>Garanti Teslimat Ayı (En Geç):</span><span class="res-val highlight" id="resTeslim">-</span></div>
+    </div>
+
+    <!-- ÖDEME TABLOSU -->
+    <div class="card" id="tabloCard" style="display:none;">
+        <h3>Detaylı Ödeme Planı</h3>
+        <p class="info-note">* Kurallar gereği teslimat en erken 6. ayda gerçekleşir. İlk taksitleri düşürdüğünüzde kalan borç sona doğru artarak tamamlanır.</p>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ay</th>
+                        <th>Tarih</th>
+                        <th>Aşama / Çekiliş Durumu</th>
+                        <th>Taksit Tutarı (TL)</th>
+                        <th>Toplam Birikim</th>
+                    </tr>
+                </thead>
+                <tbody id="taksitBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('baslangicTarih').valueAsDate = new Date();
+
+        let aktifModel = 'pesinatli';
+        let anaTutar = 0;
+        let toplamBorc = 0;
+        let toplamVade = 0;
+        let teslimAyi = 0;
+        let pesinatMiktari = 0;
+        let hedefBirikim = 0;
+        let artisOrani = 0.15;
+        let planData = [];
+
+        function formatTL(val) {
+            return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val);
+        }
+
+        function switchTab(modelId, evt) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.model-panel').forEach(p => p.classList.remove('active'));
+            evt.target.classList.add('active');
+            document.getElementById(modelId).classList.add('active');
+            aktifModel = modelId;
+            document.getElementById('sonucCard').style.display = 'none';
+            document.getElementById('tabloCard').style.display = 'none';
+        }
+
+        function hesapla(model) {
+            anaTutar = parseFloat(document.getElementById('tutar').value) || 0;
+            const orgOran = parseFloat(document.getElementById('orgOran').value) || 0;
+            const orgUcreti = anaTutar * (orgOran / 100);
+            hedefBirikim = anaTutar * 0.45;
+
+            planData = [];
+            pesinatMiktari = 0;
+
+            if (model === 'pesinatli') {
+                pesinatMiktari = parseFloat(document.getElementById('pes1_tutar').value) || 0;
+                toplamVade = parseInt(document.getElementById('pes1_vade').value) || 1;
+                artisOrani = (parseFloat(document.getElementById('pes1_artis').value) || 0) / 100;
+                toplamBorc = anaTutar - pesinatMiktari;
+
+                artarakTamamla(0, toplamBorc);
+
+            } else if (model === 'kurali') {
+                toplamVade = parseInt(document.getElementById('kur_grup').value) || 30;
+                artisOrani = (parseFloat(document.getElementById('kur_artis').value) || 0) / 100;
+                toplamBorc = anaTutar;
+
+                artarakTamamla(0, toplamBorc);
+
+            } else if (model === 'kurasiz') {
+                const basTaksit = parseFloat(document.getElementById('kurasiz_taksit').value) || 0;
+                artisOrani = (parseFloat(document.getElementById('kurasiz_artis').value) || 0) / 100;
+                toplamBorc = anaTutar;
+
+                toplamVade = Math.ceil(anaTutar / basTaksit);
+                let currT = basTaksit;
+                for (let i = 1; i <= toplamVade; i++) {
+                    if (i > 1 && (i - 1) % 12 === 0) currT *= (1 + artisOrani);
+                    planData.push({ ay: i, tutar: currT, locked: false });
+                }
+            }
+
+            hesaplaTeslimatAyi();
+
+            document.getElementById('resOrg').innerText = formatTL(orgUcreti);
+            document.getElementById('resBorc').innerText = formatTL(toplamBorc);
+            document.getElementById('resHedefBirikim').innerText = formatTL(hedefBirikim);
+            document.getElementById('resTeslim').innerText = teslimAyi + ". Ay (Minimum 6. Ay Kuralı)";
+            document.getElementById('sonucCard').style.display = 'block';
+            document.getElementById('tabloCard').style.display = 'block';
+
+            renderTable();
+        }
+
+        function artarakTamamla(kilitliAdet, kalanBorc) {
+            let kilitlenmeyenSayisi = toplamVade - kilitliAdet;
+            if (kilitlenmeyenSayisi <= 0 || kalanBorc <= 0) return;
+
+            let agirliklar = [];
+            let toplamAgirlik = 0;
+
+            for (let i = 0; i < kilitlenmeyenSayisi; i++) {
+                let yilKat = Math.floor(i / 12);
+                let agirlik = Math.pow(1 + artisOrani, yilKat);
+                agirliklar.push(agirlik);
+                toplamAgirlik += agirlik;
+            }
+
+            let tabanBirim = kalanBorc / toplamAgirlik;
+
+            let idx = 0;
+            for (let i = 0; i < toplamVade; i++) {
+                if (i < kilitliAdet) continue;
+                let hesaplananTaksit = tabanBirim * agirliklar[idx];
+                if (planData[i]) {
+                    planData[i].tutar = hesaplananTaksit;
+                } else {
+                    planData.push({ ay: i + 1, tutar: hesaplananTaksit, locked: false });
+                }
+                idx++;
+            }
+        }
+
+        // MINIMUM 6. AY VE %45 KURALINA GÖRE TESLİMAT HESABI
+        function hesaplaTeslimatAyi() {
+            let birikim = pesinatMiktari;
+            let hesaplananAy = 0;
+
+            for (let i = 0; i < planData.length; i++) {
+                birikim += planData[i].tutar;
+                if (birikim >= hedefBirikim) {
+                    hesaplananAy = planData[i].ay;
+                    break;
+                }
+            }
+
+            // KURAL: Ne olursa olsun teslimat en erken 6. ayda gerçekleşir
+            teslimAyi = Math.max(6, hesaplananAy);
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('taksitBody');
+            tbody.innerHTML = "";
+
+            const basTarihVal = document.getElementById('baslangicTarih').value;
+            let baslangicTarihi = basTarihVal ? new Date(basTarihVal) : new Date();
+
+            let kumulatifBirikim = pesinatMiktari;
+
+            planData.forEach((item, index) => {
+                kumulatifBirikim += item.tutar;
+                const tr = document.createElement('tr');
+                
+                let d = new Date(baslangicTarihi);
+                d.setMonth(d.getMonth() + index);
+                let tarihStr = d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+                let durum = "Tasarruf Taksiti";
+                let extraInfo = "";
+
+                // ÇEKİLİŞLİ MODEL ÖZEL ŞARTLARI
+                if (aktifModel === 'kurali') {
+                    if (item.ay === 1) {
+                        extraInfo = " [1. ÇEKİLİŞ - Çıksa da Teslimat 6. Ay]";
+                    } else if (item.ay >= 2 && item.ay <= 5) {
+                        extraInfo = " [Çekiliş Yok]";
+                    } else {
+                        extraInfo = ` [${item.ay - 4}. Çekiliş Var]`;
+                    }
+                }
+
+                if (item.ay === teslimAyi) {
+                    durum = "TAHSİSAT (GARANTİ TESLİMAT)";
+                    tr.className = "tahsisat-row";
+                } else if (item.ay > teslimAyi) {
+                    durum = "Finansman Taksiti";
+                }
+
+                tr.innerHTML = `
+                    <td><b>${item.ay}</b></td>
+                    <td>${tarihStr}</td>
+                    <td>${durum}${extraInfo}</td>
+                    <td>
+                        <input type="number" class="table-input" value="${Math.round(item.tutar)}" 
+                               onchange="onTaksitChange(${index}, this.value)">
+                    </td>
+                    <td><b>${formatTL(kumulatifBirikim)}</b></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function onTaksitChange(changedIndex, newVal) {
+            let val = parseFloat(newVal) || 0;
+            planData[changedIndex].tutar = val;
+
+            for (let i = 0; i <= changedIndex; i++) {
+                planData[i].locked = true;
+            }
+
+            let odenenVeKilitli = 0;
+            let kilitliAdet = 0;
+
+            planData.forEach(item => {
+                if (item.locked) {
+                    odenenVeKilitli += item.tutar;
+                    kilitliAdet++;
+                }
+            });
+
+            let kalanBorc = toplamBorc - odenenVeKilitli;
+            artarakTamamla(kilitliAdet, kalanBorc);
+
+            hesaplaTeslimatAyi();
+            document.getElementById('resTeslim').innerText = teslimAyi + ". Ay (Minimum 6. Ay Kuralı)";
+            renderTable();
+        }
+    </script>
+</body>
+</html>
